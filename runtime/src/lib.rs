@@ -2,6 +2,8 @@
 // `construct_runtime!` does a lot of recursion and requires us to increase the limit to 256.
 #![recursion_limit = "256"]
 
+pub mod offchain;
+
 // Make the WASM binary available.
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
@@ -51,6 +53,8 @@ pub use sp_runtime::{Perbill, Permill};
 pub use pallet_template;
 
 pub use pallet_kitties;
+
+pub use pallet_ocw;
 
 /// An index to a block.
 pub type BlockNumber = u32;
@@ -289,6 +293,12 @@ impl pallet_kitties::Config for Runtime {
 }
 
 
+impl pallet_ocw::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type AppCrypto = crate::offchain::app_crypto::AppCryptoSr25519;
+}
+
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
 	pub struct Runtime
@@ -308,6 +318,7 @@ construct_runtime!(
 		TemplateModule: pallet_template,
 		KittiesModule: pallet_kitties,
 		RandomnessCollectiveFlip: pallet_insecure_randomness_collective_flip,
+		PalletOcw: pallet_ocw,
 	}
 );
 

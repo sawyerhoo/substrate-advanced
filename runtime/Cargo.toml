@@ -51,6 +51,7 @@ frame-system-benchmarking = { version = "4.0.0-dev", default-features = false, g
 # Local Dependencies
 pallet-template = { version = "4.0.0-dev", default-features = false, path = "../pallets/template" }
 pallet-kitties = { version = "4.0.0-dev", default-features = false, path = "../pallets/kitties" }
+pallet-ocw = { version = "4.0.0-dev", default-features = false, path = "../pallets/ocw" }
 
 [build-dependencies]
 substrate-wasm-builder = { version = "5.0.0-dev", git = "https://github.com/paritytech/substrate.git", optional = true , branch = "polkadot-v0.9.40" }
@@ -91,6 +92,7 @@ std = [
 	"substrate-wasm-builder",
 	"pallet-kitties/std",
 	"pallet-insecure-randomness-collective-flip/std",
+	"pallet-ocw/std",
 ]
 runtime-benchmarks = [
 	"frame-benchmarking/runtime-benchmarks",
