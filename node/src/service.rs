@@ -135,6 +135,16 @@ pub fn new_partial(
 			compatibility_mode: Default::default(),
 		})?;
 
+	if config.offchain_worker.enabled {
+		let keystore = keystore_container.sync_keystore();
+		sp_keystore::SyncCryptoStore::sr25519_generate_new(
+			&*keystore,
+			node_template_runtime::offchain::app_crypto::KEY_TYPE,
+			Some("//Alice"),
+		)
+		.expect("Creating key with account Alice should succeed.");
+	}
+
 	Ok(sc_service::PartialComponents {
 		client,
 		backend,

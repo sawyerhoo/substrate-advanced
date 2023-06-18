@@ -2,7 +2,6 @@
 
 pub use pallet::*;
 pub use offchain::*;
-
 mod offchain;
 
 #[frame_support::pallet]
@@ -17,12 +16,12 @@ mod pallet {
 	};
 
 	#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, scale_info::TypeInfo)]
-	pub struct Payload<P> {
+	pub struct PayloadStruct<P> {
 		public: P,
-		number: u64,
+		count: u64,
 	}
 
-	impl<T: SigningTypes> SignedPayload<T> for Payload<T::Public> {
+	impl<T: SigningTypes> SignedPayload<T> for PayloadStruct<T::Public> {
 		fn public(&self) -> T::Public {
 			self.public.clone()
 		}
@@ -46,53 +45,37 @@ mod pallet {
 	#[pallet::pallet]
 	pub struct Pallet<T>(_);
 
-	#[pallet::hooks]
-	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
-		fn offchain_worker(block_number: T::BlockNumber) {
-			log::info!("[ {:?} ] offchain_worker", block_number);
 
-			let result = crate::offchain::fetch_repo_info();
-			if let Err(_) = result {
-				log::error!("fetch_repo_info err");
-				return
-			}
-			let repo_info = result.unwrap();
-			log::info!("repo info: {:?}", repo_info);
+	
+
+
+	#[pallet::hooks]
+	impl<T:Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
+		fn offchain_worker(_block_number: T::BlockNumber) {
+			//通过Http接口获取外部价格
+			let price = crate::offchain::get_count().unwrap_or(0);
+			let value:u64 = price.into();
 
 			let signer = Signer::<T, T::AppCrypto>::any_account();
 
-			if let Some((_accoount, result)) = signer.send_unsigned_transaction(
-				|account| Payload {
-					number: repo_info.stargazers_count,
-					public: account.public.clone(),
-				},
-				|payload, signature| Call::unsigned_extrinsic_with_signed_payload {
-					payload,
-					signature,
-				},
+			if let Some((_, res)) = signer.send_unsigned_transaction(
+				// this line is to prepare and return payload
+				|acct| PayloadStruct { count: value, public: acct.public.clone() },
+				|payload, signature| Call::unsigned_extrinsic_with_signed_payload { payload, signature },
 			) {
-				match result {
-					Ok(_) => {
-						log::info!(
-							"[ {:?} ] unsigned tx with signed payload successfully sent.",
-							block_number
-						);
-					},
-					Err(_) => {
-						log::error!(
-							"[ {:?} ] sending unsigned tx with signed payload failed.",
-							block_number
-						);
-					},
+				match res {
+					Ok(()) => {log::info!("### OCW ==> unsigned tx with signed payload successfully sent.");}
+					Err(()) => {log::error!("### OCW ==> sending unsigned tx with signed payload failed.");}
 				};
 			} else {
-				log::error!("[ {:?} ] No local account available", block_number);
+				// The case of `None`: no account is available for sending
+				log::error!("### OCW ==> No local account available");
 			}
 
-		
-			log::info!("[ {:?} ] =", block_number);
+
 		}
 	}
+
 
 	#[pallet::validate_unsigned]
 	impl<T: Config> ValidateUnsigned for Pallet<T> {
@@ -142,7 +125,7 @@ mod pallet {
 		#[pallet::weight(0)]
 		pub fn unsigned_extrinsic_with_signed_payload(
 			origin: OriginFor<T>,
-			payload: Payload<T::Public>,
+			payload: PayloadStruct<T::Public>,
 			_signature: T::Signature,
 		) -> DispatchResult {
 			ensure_none(origin)?;
@@ -150,7 +133,7 @@ mod pallet {
 			log::info!(
 				"[ {:?} ] in call unsigned_extrinsic_with_signed_payload: {:?}",
 				frame_system::Pallet::<T>::block_number(),
-				payload.number,
+				payload.count,
 			);
 
 			Ok(())
